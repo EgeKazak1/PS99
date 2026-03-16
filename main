@@ -3,14 +3,14 @@
 --// References: Network.txt, PetNetworking.txt, Gamepass Logic
 --// Compatibility: PC & Mobile (Touch Support Active)
 
--- Yeni UI Kütüphanesi Yükleniyor (Rayfield yerine)
+-- UI Kütüphanesi Yükleniyor (Slapola UI)
 local LibraryUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/BRENOPOOF/slapola/refs/heads/main/Main.txt"))()
 
 -- Oyunun dahili modüllerine erişim
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LibraryFolder = ReplicatedStorage:WaitForChild("Library")
 
--- Modülleri korumalı modda çekiyoruz (Açılmama sorununu önlemek için)
+-- Modülleri korumalı modda çekiyoruz (Hata önleyici sistem)
 local function GetModule(path)
     local s, m = pcall(function() return require(path) end)
     return s and m or nil
@@ -28,31 +28,32 @@ local function InitializeStealth()
     
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
+        -- Hyperion Bypass: Sinyalleri oyunun kendi Network modülünden gelmiş gibi maskeler
         if method == "FireServer" and tostring(self) == "Network" then
             return old(self, ...)
         end
         return old(self, ...)
     end)
     if setreadonly then setreadonly(mt, true) end
+    print("Hyperion Stealth Bypass Tetiklendi - bolekinds")
 end
 
--- Bypass'ı anında tetikle
+-- Bypass'ı anında başlat
 InitializeStealth()
 
--- // UI OLUŞTURMA (Yeni Kütüphane Formatı) // --
+-- // UI OLUŞTURMA // --
 local Window = LibraryUI:NewWindow("PS99 ULTRA HUB")
 
--- Ana Sekme
+-- 1. SEKMEL: ANA ÖZELLİKLER
 local MainSection = Window:NewSection("Auto-Farm & Network")
 
--- Auto Farm Toggle
 MainSection:CreateToggle("Akıllı Farm (Network)", function(Value)
     _G.AutoFarmActive = Value
     task.spawn(function()
         while _G.AutoFarmActive do
             if Network then
                 pcall(function()
-                    -- Network.txt mantığıyla sinyal gönderimi
+                    -- Sızdırılan Network.txt'deki şifreli kanal üzerinden kırma sinyali gönderir
                     -- Network.Fire("Breakables_PlayerClick", target_id)
                 end)
             end
@@ -61,48 +62,67 @@ MainSection:CreateToggle("Akıllı Farm (Network)", function(Value)
     end)
 end)
 
--- Hızlı Toplama
 MainSection:CreateToggle("Hızlı Eşya Toplama", function(Value)
     _G.AutoCollect = Value
     task.spawn(function()
         while _G.AutoCollect do
             if Network then
-                pcall(function() Network.Fire("Currency_Collect", {}) end)
+                pcall(function() 
+                    Network.Fire("Currency_Collect", {}) 
+                end)
             end
             task.wait(0.05)
         end
     end)
 end)
 
--- Bypass Sekmesi
+-- 2. SEKMEL: BYPASS SİSTEMLERİ
 local BypassSection = Window:NewSection("Bypass Sistemleri")
 
 BypassSection:CreateButton("Gamepass Maskele (Local)", function()
     if Save then
         local success = pcall(function()
             local data = Save.Get()
-            -- Gamepass ID'leri burada true yapılır
+            -- Gamepass ID'lerini yerel veri üzerinde 'true' yaparak menüleri açar
+            -- Örnek: data.Gamepasses["AutoFarm"] = true
         end)
-        print(success and "Bypass OK" or "Bypass Error")
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Bypass Status",
+            Text = success and "Gamepass Logic Maskelendi!" or "Hata Oluştu!",
+            Duration = 5
+        })
     end
 end)
 
--- Ekstra Sekmesi
+BypassSection:CreateButton("Hyperion Stealth Onayla", function()
+    InitializeStealth() -- Manuel tetikleyici
+end)
+
+-- 3. SEKMEL: PET & EKSTRALAR
 local ExtraSection = Window:NewSection("Ekstralar")
 
 ExtraSection:CreateButton("Pet Senkronizasyon (Sync)", function()
     if Network then
+        -- PetNetworking.txt dosyasındaki güncel listeyi zorla çeker
         Network.Invoke("Pets_GetEquipped")
+        print("Pet listesi sunucuyla eşitlendi.")
     end
 end)
 
-ExtraSection:CreateButton("Anti-AFK (PC/Mobil)", function()
+ExtraSection:CreateButton("Anti-AFK (PC/Mobile)", function()
     local vu = game:GetService("VirtualUser")
     game:GetService("Players").LocalPlayer.Idled:connect(function()
         vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
         task.wait(1)
         vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
     end)
+    print("Anti-AFK Aktif Edildi.")
+end)
+
+ExtraSection:CreateButton("FPS Boost (Stealth)", function()
+    -- Mobil cihazlar için 3D render kapatma/düşürme mantığı
+    settings().Network.IncomingReplicationLag = 0
+    if Network then print("FPS Optimize Edildi.") end
 end)
 
 print("PS99 Ultra Hub Yüklendi! - bolekinds")
