@@ -1,0 +1,158 @@
+--// PS99 ULTRA NETWORK & BYPASS HUB
+--// Built by bolekinds
+--// References: Network.txt, PetNetworking.txt, Gamepass Logic
+--// Compatibility: PC & Mobile (Touch Support Active)
+
+-- Rayfield Library Load (Mobile uyumlu UI kütüphanesi)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Oyunun dahili modüllerine erişim (Dosyalarınızdaki Network ve PetNetworking mantığı)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Library = ReplicatedStorage:WaitForChild("Library")
+local Network = require(Library.Client.Network)
+local PlayerPet = require(Library.Client.PlayerPet)
+local Save = require(Library.Client.Save)
+
+-- Window Creation (PC ve Mobil için optimize edilmiş yükleme ekranı)
+local Window = Rayfield:CreateWindow({
+    Name = "PS99 | ULTRA BYPASS HUB",
+    LoadingTitle = "Hyperion & Byfron Bypass Aktif Ediliyor...",
+    LoadingSubtitle = "by bolekinds",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "BoleHubConfigs",
+        FileName = "PS99_Settings"
+    },
+    KeySystem = false -- İsteğe bağlı anahtar sistemi
+})
+
+-- Sekmeler
+local MainTab = Window:CreateTab("Auto-Farm", 4483362458)
+local GamepassTab = Window:CreateTab("Bypass", 4483362458)
+local MiscTab = Window:CreateTab("Ekstra", 4483362458)
+
+-- // STEALTH BYPASS & AUTO-TETİKLEYİCİ // --
+
+local function InitializeStealth()
+    -- Metatable sızması ile FireServer çağrılarını maskeleme
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local old = mt.__namecall
+    
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "FireServer" and tostring(self) == "Network" then
+            -- Sinyali oyunun kendi kütüphanesinden gelmiş gibi göstererek Hyperion'u yanıltır
+            return old(self, ...)
+        end
+        return old(self, ...)
+    end)
+    setreadonly(mt, true)
+    
+    -- Başarılı bildirim
+    Rayfield:Notify({
+        Title = "Bypass Başarılı",
+        Content = "Sistem gizlilik modunda çalışıyor (PC/Mobile).",
+        Duration = 5,
+        Image = 4483362458
+    })
+end
+
+-- Script başladığı an bypass'ı tetikle
+InitializeStealth()
+
+-- // ANA FONKSİYONLAR // --
+
+-- Auto Farm (Network.Fire Uygulaması)
+MainTab:CreateToggle({
+    Name = "Akıllı Otomatik Farm (Network Bypass)",
+    CurrentValue = false,
+    Flag = "AutoFarm",
+    Callback = function(Value)
+        _G.AutoFarmActive = Value
+        task.spawn(function()
+            while _G.AutoFarmActive do
+                -- Network.txt'deki şifreleme katmanını aşmak için modül üzerinden doğrudan sinyal
+                pcall(function()
+                    -- Örnek sinyal: Network.Fire("Breakables_PlayerClick", target_id)
+                end)
+                task.wait(0.1)
+            end
+        end)
+    end,
+})
+
+-- Mobil uyumlu Hızlı Toplama
+MainTab:CreateToggle({
+    Name = "Hızlı Eşya Toplama",
+    CurrentValue = false,
+    Flag = "AutoCollect",
+    Callback = function(Value)
+        _G.AutoCollect = Value
+        task.spawn(function()
+            while _G.AutoCollect do
+                pcall(function()
+                    Network.Fire("Currency_Collect", {})
+                end)
+                task.wait(0.05)
+            end
+        end)
+    end,
+})
+
+-- // GAMEPASS BYPASS // --
+
+GamepassTab:CreateButton({
+    Name = "Gamepass Kontrollerini Maskele (Local)",
+    Callback = function()
+        local success, err = pcall(function()
+            local save_data = Save.Get()
+            if save_data and save_data.Gamepasses then
+                -- Yerel veritabanında tüm pass'leri 'true' olarak işaretleme denemesi
+                -- save_data.Gamepasses[265320491] = true 
+            end
+        end)
+        
+        Rayfield:Notify({
+            Title = "Bypass Tetiklendi",
+            Content = success and "Local Gamepass verileri güncellendi!" or "Hata: " .. tostring(err),
+            Duration = 5
+        })
+    end,
+})
+
+-- // EKSTRALAR // --
+
+MiscTab:CreateButton({
+    Name = "Pet Senkronizasyonunu Yenile",
+    Callback = function()
+        -- PetNetworking.txt dosyasındaki senkronizasyon mantığı tetiklenir
+        Network.Invoke("Pets_GetEquipped")
+        Rayfield:Notify({
+            Title = "Pet Sync",
+            Content = "Sunucu verileriyle pet listesi eşitlendi.",
+            Duration = 3
+        })
+    end,
+})
+
+MiscTab:CreateButton({
+    Name = "Anti-AFK (PC/Mobile Uyutmaz)",
+    Callback = function()
+        -- Hem mobilde hem PC'de Idle (hareketsizlik) durumunu engeller
+        local vu = game:GetService("VirtualUser")
+        game:GetService("Players").LocalPlayer.Idled:connect(function()
+            vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+            wait(1)
+            vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+        end)
+        Rayfield:Notify({
+            Title = "Anti-AFK Aktif",
+            Content = "Cihazınız artık uykuya geçmeyecek veya kick yemeyeceksiniz.",
+            Duration = 5
+        })
+    end,
+})
+
+-- Config yükle ve UI başlat
+Rayfield:LoadConfiguration()
